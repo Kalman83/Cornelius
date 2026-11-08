@@ -125,9 +125,16 @@ test('la mémoire est autorisée par défaut et peut être refusée dès la cré
 });
 
 test('supprimer un profil efface visage, souvenirs, style, repères, sources, commandes et agent, copies comprises', async (t) => {
-  const directory = mkdtempSync(join(tmpdir(), 'cornelius-profiles-'));
-  t.after(() => rmSync(directory, { recursive: true, force: true }));
+   const directory = mkdtempSync(join(tmpdir(), 'cornelius-profiles-'));
   const path = join(directory, 'cornelius.sqlite');
+  t.after(() => {
+    try {
+      rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch (error) {
+      // Windows peut garder un verrou quelques instants après la fermeture de SQLite.
+      console.warn(`Nettoyage incomplet de ${directory}:`, error);
+    }
+  });
   const f = await fixture(t, path);
   const camille = (await f.create({ name: 'Camille' })).json<{ id: string }>();
   const robin = (await f.create({ name: 'Robin' })).json<{ id: string }>();
